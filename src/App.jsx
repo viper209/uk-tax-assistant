@@ -17,19 +17,56 @@ export default function App() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = (e) => {
-    e.preventDefault();
-    if (!input.trim()) return;
+const handleSend = async (e) => {
+  e.preventDefault();
+  if (!input.trim()) return;
+
+  // Add user message
+  setMessages((msgs) => [
+    ...msgs,
+    { sender: "user", text: input.trim() },
+  ]);
+
+  // Show a loading message
+  setMessages((msgs) => [
+    ...msgs,
+    { sender: "user", text: input.trim() },
+    { sender: "assistant", text: "Thinking..." },
+  ]);
+
+  const question = input.trim();
+  setInput("");
+
+  try {
+    const response = await fetch(
+      "https://o3s1dkulm6.execute-api.eu-west-2.amazonaws.com/prod/ask",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question }),
+      }
+    );
+    const data = await response.json();
+
+    // Remove the "Thinking..." message and add the real answer
     setMessages((msgs) => [
-      ...msgs,
-      { sender: "user", text: input.trim() },
+      ...msgs.slice(0, -1),
       {
         sender: "assistant",
-        text: "This is a placeholder response. (Integrate backend for real answers.)",
+        text: data.answer || "Sorry, I couldn't find an answer.",
       },
     ]);
-    setInput("");
-  };
+  } catch (err) {
+    // Remove the "Thinking..." message and show error
+    setMessages((msgs) => [
+      ...msgs.slice(0, -1),
+      {
+        sender: "assistant",
+        text: "Sorry, there was an error contacting the backend.",
+      },
+    ]);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-100 flex flex-col">
