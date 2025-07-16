@@ -94,6 +94,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <div className="test-tailwind">If you see a blue box, Tailwind is working!</div>
       {/* Header */}
       <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200/50 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
