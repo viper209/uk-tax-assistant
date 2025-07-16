@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import reactLogo from "./react.png";
+import reactLogo from "./assets/react.svg";
 import "./index.css";
 
 export default function App() {
