@@ -21,13 +21,6 @@ const handleSend = async (e) => {
   e.preventDefault();
   if (!input.trim()) return;
 
-  // Add user message
-  setMessages((msgs) => [
-    ...msgs,
-    { sender: "user", text: input.trim() },
-  ]);
-
-  // Show a loading message
   setMessages((msgs) => [
     ...msgs,
     { sender: "user", text: input.trim() },
@@ -48,16 +41,23 @@ const handleSend = async (e) => {
     );
     const data = await response.json();
 
-    // Remove the "Thinking..." message and add the real answer
+    // Parse Lambda Proxy response
+    let answer;
+    if (data.body) {
+      const body = JSON.parse(data.body);
+      answer = body.answer;
+    } else {
+      answer = data.answer;
+    }
+
     setMessages((msgs) => [
       ...msgs.slice(0, -1),
       {
         sender: "assistant",
-        text: data.answer || "Sorry, I couldn't find an answer.",
+        text: answer || "Sorry, I couldn't find an answer.",
       },
     ]);
   } catch (err) {
-    // Remove the "Thinking..." message and show error
     setMessages((msgs) => [
       ...msgs.slice(0, -1),
       {
