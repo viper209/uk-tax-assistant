@@ -1,6 +1,8 @@
 const colors = require('tailwindcss/colors');
+const { preset } = require('tailwindcss/defaultConfig');
 
 module.exports = {
+  presets: [preset],
   content: [
     "./index.html",
     "./src/**/*.{js,jsx,ts,tsx}",
