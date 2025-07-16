@@ -90,3 +90,12 @@ textarea:focus-visible {
 @media (prefers-color-scheme: dark) {
   /* Add dark mode styles here if needed */
 }
+
+@layer utilities {
+  .test-tailwind {
+    background-color: #2563eb; /* blue-600 */
+    color: #fff;
+    padding: 2rem;
+    font-size: 2rem;
+  }
+}
