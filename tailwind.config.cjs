@@ -1,5 +1,5 @@
+const preset = require('@tailwindcss/preset-classic');
 const colors = require('tailwindcss/colors');
-const { preset } = require('tailwindcss/defaultConfig');
 
 module.exports = {
   presets: [preset],
@@ -145,7 +145,6 @@ module.exports = {
     "text-slate-500",
     "mt-2",
     "text-center",
-    // Add any other classes you use!
   ],
   theme: {
     extend: {
