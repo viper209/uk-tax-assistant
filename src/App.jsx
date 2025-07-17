@@ -94,13 +94,12 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      <div className="test-tailwind">If you see a blue box, Tailwind is working!</div>
       {/* Header */}
       <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200/50 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl shadow-lg">
-              <img src={reactLogo} alt="UK Tax Assistant" className="h-6 w-6 text-white" />
+              <img src={reactLogo} alt="UK Tax Assistant" className="h-6 w-6 filter invert" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-slate-800 tracking-tight">
@@ -170,8 +169,8 @@ export default function App() {
                 <div className="flex items-center gap-1">
                   <div className="flex gap-1">
                     <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:0.1s]"></div>
+                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
                   </div>
                   <span className="text-sm text-slate-500 ml-2">Thinking...</span>
                 </div>
@@ -199,10 +198,9 @@ export default function App() {
                   }
                 }}
                 placeholder="Ask about UK company tax, corporation tax rates, allowances..."
-                className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 bg-white shadow-sm resize-none transition-all duration-200 text-base leading-relaxed max-h-32"
+                className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 bg-white shadow-sm resize-none transition-all duration-200 text-base leading-relaxed max-h-32 min-h-[48px]"
                 rows="1"
                 disabled={isTyping}
-                style={{ minHeight: '48px' }}
               />
               <div className="absolute right-3 bottom-3 text-xs text-slate-400">
                 {input.length > 0 && `${input.length} chars`}
