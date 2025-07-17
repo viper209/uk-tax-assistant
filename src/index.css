@@ -53,27 +53,3 @@ textarea:focus-visible {
 @media (prefers-color-scheme: dark) {
   /* Add dark mode styles here if needed */
 }
-
-@layer utilities {
-  .test-tailwind {
-    background-color: #2563eb; /* blue-600 */
-    color: #fff;
-    padding: 2rem;
-    font-size: 2rem;
-  }
-  
-  .animate-fadeIn {
-    animation: fadeIn 0.3s ease-out;
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
