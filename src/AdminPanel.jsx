@@ -49,25 +49,42 @@ const AdminPanel = () => {
   const loadConfiguration = async () => {
     setLoading(true);
     try {
-      // Test the system by making a query and checking response metadata
-      const response = await fetch('https://o3s1dkulm6.execute-api.eu-west-2.amazonaws.com/prod/ask', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: 'System status check' })
+      // Call the admin API to get current configuration
+      const response = await fetch('https://o3s1dkulm6.execute-api.eu-west-2.amazonaws.com/prod/admin', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
       });
       
       const data = await response.json();
       
-      if (data.config_source) {
-        setCurrentConfig({
-          source: data.config_source,
-          provider: data.effective_provider,
-          model: data.effective_model,
-          system_controlled: data.system_controlled
-        });
+      if (data.status === 'success') {
+        // Update form states with actual Parameter Store values
+        setSystemConfig(data.system_config);
+        setEmergencyConfig(data.admin_override);
+        
+        // Determine effective configuration
+        let effectiveConfig;
+        if (data.admin_override.emergency_mode) {
+          effectiveConfig = {
+            source: 'emergency_override',
+            provider: data.admin_override.force_provider,
+            model: data.admin_override.force_model,
+            system_controlled: true
+          };
+        } else {
+          effectiveConfig = {
+            source: 'system_default',
+            provider: data.system_config.default_provider,
+            model: data.system_config.default_model,
+            system_controlled: true
+          };
+        }
+        
+        setCurrentConfig(effectiveConfig);
+        setStatus({ type: 'success', message: 'Configuration loaded successfully' });
+      } else {
+        setStatus({ type: 'error', message: `Failed to load configuration: ${data.error}` });
       }
-
-      setStatus({ type: 'success', message: 'Configuration loaded successfully' });
     } catch (error) {
       setStatus({ type: 'error', message: `Failed to load configuration: ${error.message}` });
     } finally {
@@ -78,26 +95,35 @@ const AdminPanel = () => {
   const updateSystemConfig = async () => {
     setSaving(true);
     try {
-      // For now, we'll simulate AWS Parameter Store updates
-      // In production, this would call a backend API that updates Parameter Store
-      
       setStatus({ type: 'info', message: 'Updating system configuration...' });
       
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const response = await fetch('https://o3s1dkulm6.execute-api.eu-west-2.amazonaws.com/prod/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_system_config',
+          config: systemConfig
+        })
+      });
       
-      // Update the display
-      setCurrentConfig({
-        source: 'system_default',
-        provider: systemConfig.default_provider,
-        model: systemConfig.default_model,
-        system_controlled: true
-      });
+      const data = await response.json();
+      
+      if (data.status === 'success') {
+        // Update the display
+        setCurrentConfig({
+          source: 'system_default',
+          provider: systemConfig.default_provider,
+          model: systemConfig.default_model,
+          system_controlled: true
+        });
 
-      setStatus({ 
-        type: 'success', 
-        message: 'System configuration updated successfully. Changes will take effect within 5 minutes.' 
-      });
+        setStatus({ 
+          type: 'success', 
+          message: 'System configuration updated successfully. Changes will take effect within 5 minutes.' 
+        });
+      } else {
+        setStatus({ type: 'error', message: `Failed to update configuration: ${data.error}` });
+      }
     } catch (error) {
       setStatus({ type: 'error', message: `Failed to update configuration: ${error.message}` });
     } finally {
@@ -110,31 +136,43 @@ const AdminPanel = () => {
     try {
       setStatus({ type: 'info', message: 'Updating emergency override...' });
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await fetch('https://o3s1dkulm6.execute-api.eu-west-2.amazonaws.com/prod/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_emergency_override',
+          override: emergencyConfig
+        })
+      });
       
-      if (emergencyConfig.emergency_mode) {
-        setCurrentConfig({
-          source: 'emergency_override',
-          provider: emergencyConfig.force_provider,
-          model: emergencyConfig.force_model,
-          system_controlled: true
-        });
-        setStatus({ 
-          type: 'warning', 
-          message: 'Emergency mode activated! All requests will use the override configuration.' 
-        });
+      const data = await response.json();
+      
+      if (data.status === 'success') {
+        if (emergencyConfig.emergency_mode) {
+          setCurrentConfig({
+            source: 'emergency_override',
+            provider: emergencyConfig.force_provider,
+            model: emergencyConfig.force_model,
+            system_controlled: true
+          });
+          setStatus({ 
+            type: 'warning', 
+            message: 'Emergency mode activated! All requests will use the override configuration.' 
+          });
+        } else {
+          setCurrentConfig({
+            source: 'system_default',
+            provider: systemConfig.default_provider,
+            model: systemConfig.default_model,
+            system_controlled: true
+          });
+          setStatus({ 
+            type: 'success', 
+            message: 'Emergency mode deactivated. System returned to normal operation.' 
+          });
+        }
       } else {
-        setCurrentConfig({
-          source: 'system_default',
-          provider: systemConfig.default_provider,
-          model: systemConfig.default_model,
-          system_controlled: true
-        });
-        setStatus({ 
-          type: 'success', 
-          message: 'Emergency mode deactivated. System returned to normal operation.' 
-        });
+        setStatus({ type: 'error', message: `Failed to update emergency mode: ${data.error}` });
       }
     } catch (error) {
       setStatus({ type: 'error', message: `Failed to update emergency mode: ${error.message}` });
@@ -147,23 +185,25 @@ const AdminPanel = () => {
     setStatus({ type: 'info', message: 'Testing current configuration...' });
     
     try {
-      const response = await fetch('https://o3s1dkulm6.execute-api.eu-west-2.amazonaws.com/prod/ask', {
+      const response = await fetch('https://o3s1dkulm6.execute-api.eu-west-2.amazonaws.com/prod/admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: 'What is corporation tax?' })
+        body: JSON.stringify({
+          action: 'test_configuration'
+        })
       });
       
       const data = await response.json();
       
-      if (data.answer && data.confidence > 0.5) {
+      if (data.status === 'success') {
         setStatus({ 
           type: 'success', 
-          message: `Configuration test successful! Response confidence: ${(data.confidence * 100).toFixed(1)}%` 
+          message: `Configuration test successful! Provider: ${data.provider_used}, Model: ${data.model_used}, Confidence: ${(data.confidence * 100).toFixed(1)}%` 
         });
       } else {
         setStatus({ 
-          type: 'warning', 
-          message: 'Configuration test completed but response quality may be low' 
+          type: 'error', 
+          message: `Configuration test failed: ${data.error}` 
         });
       }
     } catch (error) {
