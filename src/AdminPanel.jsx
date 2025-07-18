@@ -27,8 +27,16 @@ const AdminPanel = () => {
     message: ''
   });
 
-  // Available models
-  const modelOptions = {
+  // Dynamic model state
+  const [modelOptions, setModelOptions] = useState({
+    bedrock: {},
+    openai: {}
+  });
+  const [modelsLoading, setModelsLoading] = useState(false);
+  const [lastModelUpdate, setLastModelUpdate] = useState(null);
+  
+  // Fallback models if dynamic loading fails
+  const fallbackModelOptions = {
     bedrock: [
       { value: 'anthropic.claude-3-7-sonnet-20250219-v1:0', label: 'Claude 3.5 Sonnet' },
       { value: 'anthropic.claude-3-haiku-20240307-v1:0', label: 'Claude 3 Haiku' },
@@ -41,9 +49,10 @@ const AdminPanel = () => {
     ]
   };
 
-  // Load current configuration
+  // Load current configuration and supported models
   useEffect(() => {
     loadConfiguration();
+    loadSupportedModels();
   }, []);
 
   const loadConfiguration = async () => {
@@ -92,6 +101,45 @@ const AdminPanel = () => {
     }
   };
 
+  const loadSupportedModels = async (forceRefresh = false) => {
+  setModelsLoading(true);
+  try {
+    const action = forceRefresh ? 'refresh_models' : 'get_supported_models';
+    const response = await fetch('https://o3s1dkulm6.execute-api.eu-west-2.amazonaws.com/prod/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action })
+    });
+    
+    const data = await response.json();
+    
+    if (data.status === 'success' && data.models) {
+      // Convert API format to dropdown format
+      const formattedModels = {
+        bedrock: Object.entries(data.models.bedrock || {}).map(([value, label]) => ({ value, label })),
+        openai: Object.entries(data.models.openai || {}).map(([value, label]) => ({ value, label }))
+      };
+      
+      setModelOptions(formattedModels);
+      setLastModelUpdate(new Date());
+      
+      if (forceRefresh) {
+        setStatus({ type: 'success', message: 'Model list refreshed successfully!' });
+      }
+    } else {
+      // Use fallback models
+      setModelOptions(fallbackModelOptions);
+      setStatus({ type: 'warning', message: 'Using fallback model list - dynamic loading failed' });
+    }
+    } catch (error) {
+      console.error('Failed to load models:', error);
+      setModelOptions(fallbackModelOptions);
+      setStatus({ type: 'warning', message: 'Using fallback model list - API unavailable' });
+    } finally {
+      setModelsLoading(false);
+    }
+  };
+  
   const updateSystemConfig = async () => {
     setSaving(true);
     try {
@@ -306,22 +354,83 @@ const AdminPanel = () => {
           <div className="text-gray-500">Configuration status unavailable</div>
         )}
 
-        <div className="mt-4 flex gap-3">
-          <button
-            onClick={loadConfiguration}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-          >
-            <RotateCcw className="h-4 w-4" />
-            Refresh Status
-          </button>
-          <button
-            onClick={testConfiguration}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
-          >
-            <Activity className="h-4 w-4" />
-            Test Configuration
-          </button>
+        {/* Model Management Status */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Settings className="h-5 w-5 text-purple-600" />
+            Available Models
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-2">AWS Bedrock Models</h3>
+              <div className="bg-gray-50 rounded-lg p-3 max-h-32 overflow-y-auto">
+                {modelOptions.bedrock.length > 0 ? (
+                  <ul className="text-sm space-y-1">
+                    {modelOptions.bedrock.map(model => (
+                      <li key={model.value} className="text-gray-600">
+                        {model.label}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-sm text-gray-500">Loading models...</div>
+                )}
+              </div>
+            </div>
+            
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-2">OpenAI Models</h3>
+              <div className="bg-gray-50 rounded-lg p-3 max-h-32 overflow-y-auto">
+                {modelOptions.openai.length > 0 ? (
+                  <ul className="text-sm space-y-1">
+                    {modelOptions.openai.map(model => (
+                      <li key={model.value} className="text-gray-600">
+                        {model.label}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-sm text-gray-500">Loading models...</div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {lastModelUpdate && (
+            <div className="mt-4 text-sm text-gray-500">
+              Last updated: {lastModelUpdate.toLocaleString()}
+            </div>
+          )}
         </div>
+        
+        <div className="mt-4 flex gap-3">
+        <button
+          onClick={loadConfiguration}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+        >
+          <RotateCcw className="h-4 w-4" />
+          Refresh Status
+        </button>
+        <button
+          onClick={testConfiguration}
+          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+        >
+          <Activity className="h-4 w-4" />
+          Test Configuration
+        </button>
+        <button
+          onClick={() => loadSupportedModels(true)}
+          disabled={modelsLoading}
+          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors flex items-center gap-2"
+        >
+          {modelsLoading ? (
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+          ) : (
+            <RotateCcw className="h-4 w-4" />
+          )}
+          Refresh Models
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
