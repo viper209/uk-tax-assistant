@@ -12,6 +12,7 @@ export default function App() {
   ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [isProcessingComplex, setIsProcessingComplex] = useState(false);
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -39,6 +40,25 @@ export default function App() {
     setMessages((msgs) => [...msgs, userMessage]);
     setInput("");
     setIsTyping(true);
+    setIsProcessingComplex(false);
+
+    // Set complex processing indicator after 10 seconds
+    const complexTimer = setTimeout(() => {
+      setIsProcessingComplex(true);
+      setMessages((msgs) => [
+        ...msgs,
+        {
+          sender: "assistant",
+          text: "🔍 Processing complex multi-domain tax analysis... This may take up to 45 seconds for comprehensive guidance.",
+          timestamp: new Date(),
+          isProcessing: true,
+        },
+      ]);
+    }, 10000);
+
+    // Create abort controller for timeout handling
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 50000); // 50 second timeout
 
     try {
       const response = await fetch(
@@ -47,8 +67,17 @@ export default function App() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ question }),
+          signal: controller.signal,
         }
       );
+
+      clearTimeout(complexTimer);
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
 
       let answer;
@@ -59,25 +88,48 @@ export default function App() {
         answer = data.answer;
       }
 
-      setMessages((msgs) => [
-        ...msgs,
-        {
-          sender: "assistant",
-          text: answer || "I apologize, but I couldn't find a relevant answer to your question. Please try rephrasing or ask about UK company tax, corporation tax rates, or financial planning.",
-          timestamp: new Date(),
-        },
-      ]);
+      // Remove processing message if it was added
+      setMessages((msgs) => {
+        const filteredMsgs = msgs.filter(msg => !msg.isProcessing);
+        return [
+          ...filteredMsgs,
+          {
+            sender: "assistant",
+            text: answer || "I apologize, but I couldn't find a relevant answer to your question. Please try rephrasing or ask about UK company tax, corporation tax rates, or financial planning.",
+            timestamp: new Date(),
+          },
+        ];
+      });
+
     } catch (err) {
-      setMessages((msgs) => [
-        ...msgs,
-        {
-          sender: "assistant",
-          text: "I'm experiencing technical difficulties. Please try again in a moment.",
-          timestamp: new Date(),
-        },
-      ]);
+      clearTimeout(complexTimer);
+      clearTimeout(timeoutId);
+
+      let errorMessage;
+      
+      if (err.name === 'AbortError') {
+        errorMessage = "This complex tax analysis is taking longer than expected. The system may still be processing your request. Please try breaking your question into smaller parts or try again in a moment.";
+      } else if (err.message.includes('HTTP error')) {
+        errorMessage = "I'm experiencing connectivity issues. Please check your internet connection and try again.";
+      } else {
+        errorMessage = "I'm experiencing technical difficulties. Please try again in a moment.";
+      }
+
+      // Remove processing message if it was added
+      setMessages((msgs) => {
+        const filteredMsgs = msgs.filter(msg => !msg.isProcessing);
+        return [
+          ...filteredMsgs,
+          {
+            sender: "assistant",
+            text: errorMessage,
+            timestamp: new Date(),
+          },
+        ];
+      });
     } finally {
       setIsTyping(false);
+      setIsProcessingComplex(false);
     }
   };
 
@@ -131,21 +183,35 @@ export default function App() {
                 className={`max-w-[75%] ${
                   msg.sender === "user"
                     ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl rounded-br-md shadow-lg"
+                    : msg.isProcessing 
+                    ? "bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 rounded-2xl rounded-bl-md shadow-sm border border-amber-200/50"
                     : "bg-white text-slate-800 rounded-2xl rounded-bl-md shadow-sm border border-slate-200/50"
                 } px-5 py-4 transition-all duration-200 hover:shadow-md`}
               >
                 {msg.sender === "user" ? (
                   <p className="text-base leading-relaxed">{msg.text}</p>
                 ) : (
-                  <div
-                    className="prose prose-sm max-w-none text-slate-700 leading-relaxed"
-                    dangerouslySetInnerHTML={{
-                      __html: `<p class="mb-3">${formatMessage(msg.text)}</p>`,
-                    }}
-                  />
+                  <div>
+                    {msg.isProcessing && (
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="flex gap-1">
+                          <div className="w-2 h-2 bg-amber-500 rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-amber-500 rounded-full animate-bounce [animation-delay:0.1s]"></div>
+                          <div className="w-2 h-2 bg-amber-500 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                        </div>
+                      </div>
+                    )}
+                    <div
+                      className="prose prose-sm max-w-none text-slate-700 leading-relaxed"
+                      dangerouslySetInnerHTML={{
+                        __html: `<p class="mb-3">${formatMessage(msg.text)}</p>`,
+                      }}
+                    />
+                  </div>
                 )}
                 <div className={`text-xs mt-2 ${
-                  msg.sender === "user" ? "text-blue-100" : "text-slate-400"
+                  msg.sender === "user" ? "text-blue-100" : 
+                  msg.isProcessing ? "text-amber-600" : "text-slate-400"
                 }`}>
                   {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
@@ -160,7 +226,7 @@ export default function App() {
           ))}
 
           {/* Typing Indicator */}
-          {isTyping && (
+          {isTyping && !isProcessingComplex && (
             <div className="flex gap-4 justify-start animate-fadeIn">
               <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center shadow-md">
                 <div className="w-4 h-4 bg-white rounded-full"></div>
@@ -172,7 +238,7 @@ export default function App() {
                     <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:0.1s]"></div>
                     <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
                   </div>
-                  <span className="text-sm text-slate-500 ml-2">Thinking...</span>
+                  <span className="text-sm text-slate-500 ml-2">Analyzing tax implications...</span>
                 </div>
               </div>
             </div>
@@ -223,6 +289,9 @@ export default function App() {
           </form>
           <div className="text-xs text-slate-500 mt-2 text-center">
             Press Enter to send • Shift+Enter for new line
+            {isProcessingComplex && (
+              <span className="text-amber-600 font-medium"> • Complex analysis in progress...</span>
+            )}
           </div>
         </div>
       </div>
