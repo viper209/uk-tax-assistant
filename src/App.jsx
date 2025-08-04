@@ -1,29 +1,3 @@
-Thank you for providing the code for your `app.jsx` component. This gives me all the information I need to refactor it.
-
-Your current code is clean and well-structured, which makes this a straightforward update. The logic for handling user input, managing state, and rendering the chat interface is robust. The primary changes will be in the `handleSend` function to adapt it to the new Bedrock-powered API.
-
-### **Analysis of Your Current `handleSend` Function:**
-
-Your existing `handleSend` function does the following:
-
-  * It sends a `POST` request to `https://o3s1dkulm6.execute-api.eu-west-2.amazonaws.com/prod/ask`.
-  * The body of the request is `JSON.stringify({ question })`.
-  * It expects the Lambda to return a JSON object that either contains the answer directly (`data.answer`) or within a `body` property (`JSON.parse(data.body).answer`).
-
-### **Refactoring Plan:**
-
-We will update the `handleSend` function to align with the new Bedrock-integrated API architecture.
-
-1.  **Update the API Endpoint URL:** Your old API endpoint URL `https://o3s1dkulm6.execute-api.eu-west-2.amazonaws.com/prod/ask` is likely the one you'll keep. The `prod` stage might be your deployment stage. We'll use this as the `API_ENDPOINT`.
-2.  **Update the Request Body:** The new `tax-agent-orchestrator` Lambda is designed to receive a simplified JSON payload with the key `inputText`. We'll change the `JSON.stringify` call to reflect this.
-3.  **Update the Response Handling:** The Bedrock-integrated Lambda will return a slightly different JSON structure. It will likely be a `JSON` object with a `completion` key that contains the agent's full text response. We need to parse this new structure correctly.
-4.  **Simplify Error Handling:** The original `try/catch` block is good, but we can make it more robust.
-
-Here is the **refactored `app.jsx` code** for you to use. I've highlighted the specific changes.
-
------
-
-```jsx
 import React, { useState, useRef, useEffect } from "react";
 import reactLogo from "./assets/react.svg";
 import AdminPanel from "./AdminPanel.jsx";
@@ -328,5 +302,3 @@ export default function App() {
     </div>
   );
 }
-
-```
