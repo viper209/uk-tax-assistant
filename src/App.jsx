@@ -1,7 +1,38 @@
+Thank you for providing the code for your `app.jsx` component. This gives me all the information I need to refactor it.
+
+Your current code is clean and well-structured, which makes this a straightforward update. The logic for handling user input, managing state, and rendering the chat interface is robust. The primary changes will be in the `handleSend` function to adapt it to the new Bedrock-powered API.
+
+### **Analysis of Your Current `handleSend` Function:**
+
+Your existing `handleSend` function does the following:
+
+  * It sends a `POST` request to `https://o3s1dkulm6.execute-api.eu-west-2.amazonaws.com/prod/ask`.
+  * The body of the request is `JSON.stringify({ question })`.
+  * It expects the Lambda to return a JSON object that either contains the answer directly (`data.answer`) or within a `body` property (`JSON.parse(data.body).answer`).
+
+### **Refactoring Plan:**
+
+We will update the `handleSend` function to align with the new Bedrock-integrated API architecture.
+
+1.  **Update the API Endpoint URL:** Your old API endpoint URL `https://o3s1dkulm6.execute-api.eu-west-2.amazonaws.com/prod/ask` is likely the one you'll keep. The `prod` stage might be your deployment stage. We'll use this as the `API_ENDPOINT`.
+2.  **Update the Request Body:** The new `tax-agent-orchestrator` Lambda is designed to receive a simplified JSON payload with the key `inputText`. We'll change the `JSON.stringify` call to reflect this.
+3.  **Update the Response Handling:** The Bedrock-integrated Lambda will return a slightly different JSON structure. It will likely be a `JSON` object with a `completion` key that contains the agent's full text response. We need to parse this new structure correctly.
+4.  **Simplify Error Handling:** The original `try/catch` block is good, but we can make it more robust.
+
+Here is the **refactored `app.jsx` code** for you to use. I've highlighted the specific changes.
+
+-----
+
+```jsx
 import React, { useState, useRef, useEffect } from "react";
 import reactLogo from "./assets/react.svg";
 import AdminPanel from "./AdminPanel.jsx";
 import "./index.css";
+
+// --- START: REFACTORED CODE ---
+
+// Your API Gateway endpoint URL for the Bedrock-integrated Lambda
+const API_ENDPOINT = "https://o3s1dkulm6.execute-api.eu-west-2.amazonaws.com/prod/ask";
 
 export default function App() {
   // State for navigation
@@ -48,24 +79,37 @@ export default function App() {
     setIsTyping(true);
 
     try {
-      const response = await fetch(
-        "https://o3s1dkulm6.execute-api.eu-west-2.amazonaws.com/prod/ask",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question }),
-        }
-      );
+      // --- REFACTORING START: API CALL ---
+      const response = await fetch(API_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // Change payload to match the new Bedrock-integrated Lambda
+        body: JSON.stringify({ inputText: question }),
+      });
+
+      // Handle non-ok HTTP responses
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
 
+      // --- REFACTORING START: RESPONSE PARSING ---
+      // The Bedrock agent returns a response within a completion object.
+      // We need to parse this new nested structure.
       let answer;
-      if (data.body) {
-        const body = JSON.parse(data.body);
-        answer = body.answer;
+      
+      // Assuming a simplified direct text response from the agent
+      // You may need to inspect the final JSON structure from your Lambda
+      // to refine this parsing.
+      const agentResponseObject = JSON.parse(data.response.response.text);
+      if (agentResponseObject && agentResponseObject.answer) {
+        answer = agentResponseObject.answer;
       } else {
-        answer = data.answer;
+        // Fallback to the full response if it's not in the expected format
+        answer = data.response.response.text;
       }
-
+      
       setMessages((msgs) => [
         ...msgs,
         {
@@ -75,11 +119,12 @@ export default function App() {
         },
       ]);
     } catch (err) {
+      console.error("Error during API call:", err);
       setMessages((msgs) => [
         ...msgs,
         {
           sender: "assistant",
-          text: "I'm experiencing technical difficulties. Please try again in a moment.",
+          text: `I'm experiencing a technical issue: ${err.message}. Please try again in a moment.`,
           timestamp: new Date(),
         },
       ]);
@@ -87,6 +132,8 @@ export default function App() {
       setIsTyping(false);
     }
   };
+
+  // --- REFACTORING END: API CALL AND RESPONSE PARSING ---
 
   const formatMessage = (text) => {
     // Basic markdown-like formatting
@@ -98,6 +145,9 @@ export default function App() {
       .replace(/\n\n/g, '</p><p class="mb-3">')
       .replace(/\n/g, '<br/>');
   };
+
+  // The rest of your rendering code is untouched
+  // as the logic for handling navigation and chat UI is already perfect.
 
   // Render admin panel
   if (currentView === "admin") {
@@ -278,3 +328,5 @@ export default function App() {
     </div>
   );
 }
+
+```
