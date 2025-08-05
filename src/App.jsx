@@ -3,16 +3,11 @@ import reactLogo from "./assets/react.svg";
 import AdminPanel from "./AdminPanel.jsx";
 import "./index.css";
 
-// --- START: REFACTORED CODE ---
-
-// Your API Gateway endpoint URL for the Bedrock-integrated Lambda
-const API_ENDPOINT = "https://o3s1dkulm6.execute-api.eu-west-2.amazonaws.com/prod/ask";
+// Your API Gateway endpoint URL
+const API_BASE_URL = "https://o3s1dkulm6.execute-api.eu-west-2.amazonaws.com/prod";
 
 export default function App() {
-  // State for navigation
-  const [currentView, setCurrentView] = useState("chat"); // "chat" or "admin"
-  
-  // Existing chat state
+  const [currentView, setCurrentView] = useState("chat");
   const [messages, setMessages] = useState([
     {
       sender: "assistant",
@@ -25,17 +20,68 @@ export default function App() {
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Auto-scroll to bottom
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Focus input on load
   useEffect(() => {
     if (currentView === "chat") {
       inputRef.current?.focus();
     }
   }, [currentView]);
+
+  const pollJobStatus = async (jobId) => {
+    let jobStatus = "PENDING";
+    let jobResponse = null;
+
+    // Add a message to indicate that the assistant is working
+    const thinkingMessage = {
+      sender: "assistant",
+      text: "Your request has been submitted. I'm processing your query and will have an answer for you shortly.",
+      timestamp: new Date(),
+    };
+    setMessages((msgs) => [...msgs, thinkingMessage]);
+
+    while (jobStatus === "PENDING") {
+      try {
+        const response = await fetch(`${API_BASE_URL}/status?jobId=${jobId}`);
+        const data = await response.json();
+
+        jobStatus = data.status;
+        if (jobStatus === "COMPLETE") {
+          jobResponse = data.response;
+        }
+
+      } catch (err) {
+        console.error("Polling error:", err);
+        jobStatus = "ERROR";
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 5000)); // Poll every 5 seconds
+    }
+
+    setIsTyping(false);
+
+    if (jobStatus === "COMPLETE") {
+      setMessages((msgs) => [
+        ...msgs,
+        {
+          sender: "assistant",
+          text: jobResponse,
+          timestamp: new Date(),
+        },
+      ]);
+    } else {
+      setMessages((msgs) => [
+        ...msgs,
+        {
+          sender: "assistant",
+          text: "An error occurred while processing your request. Please try again.",
+          timestamp: new Date(),
+        },
+      ]);
+    }
+  };
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -53,47 +99,23 @@ export default function App() {
     setIsTyping(true);
 
     try {
-      // --- REFACTORING START: API CALL ---
-      const response = await fetch(API_ENDPOINT, {
+      const response = await fetch(`${API_BASE_URL}/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Change payload to match the new Bedrock-integrated Lambda
         body: JSON.stringify({ inputText: question }),
       });
 
-      // Handle non-ok HTTP responses
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-
-      // --- REFACTORING START: RESPONSE PARSING ---
-      // The Bedrock agent returns a response within a completion object.
-      // We need to parse this new nested structure.
-      let answer;
-      
-      // Assuming a simplified direct text response from the agent
-      // You may need to inspect the final JSON structure from your Lambda
-      // to refine this parsing.
-      const agentResponseObject = JSON.parse(data.response.response.text);
-      if (agentResponseObject && agentResponseObject.answer) {
-        answer = agentResponseObject.answer;
+      if (response.status === 202) {
+        const data = await response.json();
+        pollJobStatus(data.jobId);
       } else {
-        // Fallback to the full response if it's not in the expected format
-        answer = data.response.response.text;
+        const data = await response.json();
+        throw new Error(data.error || "An unexpected error occurred.");
       }
-      
-      setMessages((msgs) => [
-        ...msgs,
-        {
-          sender: "assistant",
-          text: answer || "I apologize, but I couldn't find a relevant answer to your question. Please try rephrasing or ask about UK company tax, corporation tax rates, or financial planning.",
-          timestamp: new Date(),
-        },
-      ]);
+
     } catch (err) {
       console.error("Error during API call:", err);
+      setIsTyping(false);
       setMessages((msgs) => [
         ...msgs,
         {
@@ -102,15 +124,10 @@ export default function App() {
           timestamp: new Date(),
         },
       ]);
-    } finally {
-      setIsTyping(false);
     }
   };
 
-  // --- REFACTORING END: API CALL AND RESPONSE PARSING ---
-
   const formatMessage = (text) => {
-    // Basic markdown-like formatting
     return text
       .replace(/^# (.*$)/gm, '<h3 class="text-xl font-bold text-slate-800 mb-3 mt-4">$1</h3>')
       .replace(/^## (.*$)/gm, '<h4 class="text-lg font-semibold text-slate-700 mb-2 mt-3">$1</h4>')
@@ -120,14 +137,9 @@ export default function App() {
       .replace(/\n/g, '<br/>');
   };
 
-  // The rest of your rendering code is untouched
-  // as the logic for handling navigation and chat UI is already perfect.
-
-  // Render admin panel
   if (currentView === "admin") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-        {/* Admin Header with Back Button */}
         <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200/50 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -149,17 +161,13 @@ export default function App() {
             </button>
           </div>
         </header>
-        
-        {/* Admin Panel Content */}
         <AdminPanel />
       </div>
     );
   }
 
-  // Render main chat interface
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      {/* Header */}
       <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200/50 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -173,8 +181,6 @@ export default function App() {
               <p className="text-sm text-slate-500">AI-powered tax guidance for UK SMEs</p>
             </div>
           </div>
-          
-          {/* Admin Button */}
           <button
             onClick={() => setCurrentView("admin")}
             className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-200 text-sm font-medium shadow-lg hover:shadow-xl"
@@ -183,8 +189,6 @@ export default function App() {
           </button>
         </div>
       </header>
-
-      {/* Chat Container */}
       <main className="max-w-4xl mx-auto px-4 py-6 min-h-[calc(100vh-140px)]">
         <div className="space-y-6 pb-32">
           {messages.map((msg, idx) => (
@@ -199,7 +203,6 @@ export default function App() {
                   <div className="w-4 h-4 bg-white rounded-full"></div>
                 </div>
               )}
-              
               <div
                 className={`max-w-[75%] ${
                   msg.sender === "user"
@@ -223,7 +226,6 @@ export default function App() {
                   {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
               </div>
-
               {msg.sender === "user" && (
                 <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-slate-600 to-slate-700 rounded-full flex items-center justify-center shadow-md">
                   <div className="w-4 h-4 bg-white rounded-full"></div>
@@ -231,8 +233,6 @@ export default function App() {
               )}
             </div>
           ))}
-
-          {/* Typing Indicator */}
           {isTyping && (
             <div className="flex gap-4 justify-start animate-fadeIn">
               <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center shadow-md">
@@ -250,12 +250,9 @@ export default function App() {
               </div>
             </div>
           )}
-
           <div ref={chatEndRef} />
         </div>
       </main>
-
-      {/* Input Bar - Fixed at Bottom */}
       <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-slate-200/50 shadow-lg">
         <div className="max-w-4xl mx-auto p-4">
           <form onSubmit={handleSend} className="flex gap-3 items-end">
