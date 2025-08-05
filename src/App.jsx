@@ -34,7 +34,6 @@ export default function App() {
     let jobStatus = "PENDING";
     let jobResponse = null;
 
-    // Add a message to indicate that the assistant is working
     const thinkingMessage = {
       sender: "assistant",
       text: "Your request has been submitted. I'm processing your query and will have an answer for you shortly.",
@@ -57,7 +56,7 @@ export default function App() {
         jobStatus = "ERROR";
       }
 
-      await new Promise(resolve => setTimeout(resolve, 5000)); // Poll every 5 seconds
+      await new Promise(resolve => setTimeout(resolve, 5000));
     }
 
     setIsTyping(false);
