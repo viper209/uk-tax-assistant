@@ -1,0 +1,26 @@
+{
+  "name": "Official Node.js Image",
+
+  // Use the official 'node' image from Docker Hub with the 'lts' tag
+  "image": "node:lts",
+
+  // Forward the port Vite uses so you can preview your app
+  "forwardPorts": [5173],
+
+  // Run 'npm install' automatically after the container is created
+  "postCreateCommand": "npm install",
+
+  // Customize VS Code settings and extensions inside the container
+  "customizations": {
+    "vscode": {
+      "settings": { 
+        "editor.formatOnSave": true
+      },
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "bradlc.vscode-tailwindcss",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  }
+}

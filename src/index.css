@@ -1,23 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-brand-slate-100 font-sans text-brand-slate-700;
+  }
+  
+  /* Auto-resize textarea */
+  textarea {
+    field-sizing: content;
+  }
+}
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
 }
-
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #e2e8f0; /* brand-slate-200 */
 }
-
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #94a3b8; /* slate-400 */
   border-radius: 3px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #64748b; /* slate-500 */
 }
 
 /* Smooth font rendering */
@@ -26,30 +36,9 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Auto-resize textarea */
-textarea {
-  field-sizing: content;
-}
-
-/* Focus styles */
-button:focus-visible,
-textarea:focus-visible {
-  outline: 2px solid #3b82f6;
-  outline-offset: 2px;
-}
-
-/* Mobile optimizations */
+/* iOS zoom prevention */
 @media (max-width: 640px) {
-  .max-w-4xl {
-    @apply px-3;
-  }
-  
   textarea {
-    font-size: 16px; /* Prevents zoom on iOS */
+    font-size: 16px;
   }
-}
-
-/* Dark mode support (optional) */
-@media (prefers-color-scheme: dark) {
-  /* Add dark mode styles here if needed */
 }
