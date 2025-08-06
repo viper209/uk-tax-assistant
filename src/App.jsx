@@ -102,7 +102,6 @@ export default function App() {
       .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-brand-slate-800">$1</strong>')
       .replace(/\n/g, '<br />');
     
-    
     return `<div class="prose prose-sm max-w-none text-brand-slate-700 leading-relaxed">${formattedText}</div>`;
   };
 
