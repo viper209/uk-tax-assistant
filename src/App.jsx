@@ -2,27 +2,18 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PaperAirplaneIcon } from "@heroicons/react/24/solid";
 import Logo from "./Logo";
-import Citation from "./Citation"; // Import the new Citation component
+import Citation from "./Citation";
 
 const API_BASE_URL = "https://o3s1dkulm6.execute-api.eu-west-2.amazonaws.com/prod";
 
-//******************************************************************//
 // THIS IS THE CORRECTED AND VERIFIED PARSE FUNCTION
-//******************************************************************//
 const parseMessage = (text) => {
-  // This regex splits the text by the pattern, but keeps the pattern in the resulting array.
   const parts = text.split(/(\)/g);
-
   return parts.map((part, index) => {
-    // This regex checks if a part is a source citation and captures the text inside.
     const match = part.match(/\/);
-
     if (match) {
-      // If it's a citation, render the Citation component.
       return <Citation key={index} text={match[1]} />;
     }
-    
-    // If it's just regular text, render it, making sure to handle newlines correctly.
     return part.split('\n').map((line, i) => (
       <React.Fragment key={`${index}-${i}`}>
         {i > 0 && <br />}
@@ -31,7 +22,6 @@ const parseMessage = (text) => {
     ));
   });
 };
-
 
 export default function App() {
   const [messages, setMessages] = useState([
@@ -158,7 +148,7 @@ export default function App() {
                 >
                   <div className="prose prose-sm max-w-none text-brand-slate-700 leading-relaxed">
                     {msg.sender === 'user' ? (
-                      <p className="text-white">{msg.text}</p>
+                      <p>{msg.text}</p>
                     ) : msg.isStatus ? (
                       <div className="flex items-center gap-3">
                         <Logo className="w-5 h-5 animate-pulse-glow" />
@@ -181,17 +171,6 @@ export default function App() {
               </motion.div>
             ))}
           </AnimatePresence>
-          {isTyping && !messages.some(m => m.isStatus) && (
-             <motion.div
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                className="flex gap-4 items-start justify-start"
-            >
-                <div className="flex-shrink-0"><Logo className="w-8 h-8 mt-1" /></div>
-                <div className="bg-white rounded-2xl rounded-bl-lg px-5 py-4 shadow-md border border-brand-slate-200">
-                    <Logo className="w-5 h-5 animate-pulse-glow" />
-                </div>
-            </motion.div>
-          )}
           <div ref={chatEndRef} />
         </div>
       </main>
