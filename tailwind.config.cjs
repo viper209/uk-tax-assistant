@@ -18,6 +18,7 @@ export default {
         'brand-gold': {
           DEFAULT: '#F9A826',
           'light': '#fffbeb',
+          'darker': '#78350f', // This color is added
         },
         'brand-slate': {
           50: '#f8fafc',

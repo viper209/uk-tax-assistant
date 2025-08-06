@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { PaperAirplaneIcon, BookOpenIcon } from "@heroicons/react/24/solid";
-import Logo from "./Logo"; // Import the new Logo component
+import { PaperAirplaneIcon } from "@heroicons/react/24/solid";
+import Logo from "./Logo";
 
 const API_BASE_URL = "https://o3s1dkulm6.execute-api.eu-west-2.amazonaws.com/prod";
 
@@ -31,7 +31,7 @@ export default function App() {
       sender: "assistant",
       text: "Analyzing with HMRC & ACCA sources...",
       timestamp: new Date(),
-      isStatus: true, // Flag to style it differently
+      isStatus: true,
     };
     setMessages((msgs) => [...msgs, thinkingMessage]);
     
@@ -54,7 +54,6 @@ export default function App() {
     }
 
     setIsTyping(false);
-    // Replace the "Analyzing..." message with the final response
     setMessages((msgs) => [
       ...msgs.slice(0, -1),
       { sender: "assistant", text: finalResponse, timestamp: new Date() },
@@ -96,12 +95,13 @@ export default function App() {
 
   const formatMessage = (text) => {
     const formattedText = text
-      .replace(/\/g, `<span class="citation"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M18.55 2.55a.75.75 0 0 1 .9 1.18l-3.025 4.537A5.247 5.247 0 0 1 12 12.75a5.247 5.247 0 0 1-4.425-7.483L4.55 2.55a.75.75 0 1 1 .9-1.18l2.365 3.547A5.225 5.225 0 0 1 12 4.25c1.6 0 3.09.712 4.125 1.847l2.425-3.547zM12 5.75a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5zM.75 14.5a.75.75 0 0 0 0 1.5h4.5a.75.75 0 0 0 0-1.5h-4.5zm18 0a.75.75 0 0 0 0 1.5h4.5a.75.75 0 0 0 0-1.5h-4.5zM5.992 19.333a.75.75 0 1 0-1.04-1.166 6.75 6.75 0 0 0-3.146 5.517.75.75 0 0 0 1.494.134 5.25 5.25 0 0 1 2.44-4.329zM19.048 18.167a.75.75 0 1 0-1.04 1.166A5.25 5.25 0 0 1 20.45 23.8a.75.75 0 0 0 1.494-.134 6.75 6.75 0 0 0-3.146-5.5z"></path></svg>$1</span>`)
+      .replace(/\/g, `<span class='citation'><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='currentColor' class='icon'><path fill-rule='evenodd' d='M4.242 2.47a.75.75 0 0 1 .666 0l4.004 2.224a.75.75 0 0 1 0 1.332L4.908 8.25a.75.75 0 0 1-.666 0L.908 5.91a.75.75 0 0 1 0-1.332L4.242 2.47Z' clip-rule='evenodd' /><path fill-rule='evenodd' d='M3.408 8.085a.75.75 0 0 1 .666 0l4.004 2.224a.75.75 0 0 1 0 1.332L4.074 13.87a.75.75 0 0 1-.666 0L.074 11.53a.75.75 0 0 1 0-1.332l3.334-1.849Z' clip-rule='evenodd' /></svg>$1</span>`)
       .replace(/^# (.*$)/gm, '<h3 class="text-xl font-bold text-brand-slate-800 mb-3 mt-4">$1</h3>')
       .replace(/^## (.*$)/gm, '<h4 class="text-lg font-semibold text-brand-slate-700 mb-2 mt-3">$1</h4>')
       .replace(/^\* (.*$)/gm, '<li class="list-disc ml-4 mb-1">$1</li>')
       .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-brand-slate-800">$1</strong>')
       .replace(/\n/g, '<br />');
+    
     
     return `<div class="prose prose-sm max-w-none text-brand-slate-700 leading-relaxed">${formattedText}</div>`;
   };
@@ -164,7 +164,7 @@ export default function App() {
               </motion.div>
             ))}
           </AnimatePresence>
-          {isTyping && !messages.some(m => m.isStatus) && ( // Show only if a job isn't already running
+          {isTyping && !messages.some(m => m.isStatus) && (
              <motion.div
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 className="flex gap-4 items-start justify-start"
