@@ -2,8 +2,27 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PaperAirplaneIcon } from "@heroicons/react/24/solid";
 import Logo from "./Logo";
+import Citation from "./Citation"; // Import the new Citation component
 
 const API_BASE_URL = "https://o3s1dkulm6.execute-api.eu-west-2.amazonaws.com/prod";
+
+// New helper function to parse messages into components and strings
+const parseMessage = (text) => {
+  const parts = text.split(/(\)/g);
+  return parts.map((part, index) => {
+    const match = part.match(/\/);
+    if (match) {
+      return <Citation key={index} text={match[1]} />;
+    }
+    // Render newlines correctly
+    return part.split('\n').map((line, i) => (
+      <React.Fragment key={`${index}-${i}`}>
+        {i > 0 && <br />}
+        {line}
+      </React.Fragment>
+    ));
+  });
+};
 
 export default function App() {
   const [messages, setMessages] = useState([
@@ -93,18 +112,6 @@ export default function App() {
     }
   };
 
-  const formatMessage = (text) => {
-    const formattedText = text
-      .replace(/\/g, `<span class='citation'><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='currentColor' class='icon'><path fill-rule='evenodd' d='M4.242 2.47a.75.75 0 0 1 .666 0l4.004 2.224a.75.75 0 0 1 0 1.332L4.908 8.25a.75.75 0 0 1-.666 0L.908 5.91a.75.75 0 0 1 0-1.332L4.242 2.47Z' clip-rule='evenodd' /><path fill-rule='evenodd' d='M3.408 8.085a.75.75 0 0 1 .666 0l4.004 2.224a.75.75 0 0 1 0 1.332L4.074 13.87a.75.75 0 0 1-.666 0L.074 11.53a.75.75 0 0 1 0-1.332l3.334-1.849Z' clip-rule='evenodd' /></svg>$1</span>`)
-      .replace(/^# (.*$)/gm, '<h3 class="text-xl font-bold text-brand-slate-800 mb-3 mt-4">$1</h3>')
-      .replace(/^## (.*$)/gm, '<h4 class="text-lg font-semibold text-brand-slate-700 mb-2 mt-3">$1</h4>')
-      .replace(/^\* (.*$)/gm, '<li class="list-disc ml-4 mb-1">$1</li>')
-      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-brand-slate-800">$1</strong>')
-      .replace(/\n/g, '<br />');
-    
-    return `<div class="prose prose-sm max-w-none text-brand-slate-700 leading-relaxed">${formattedText}</div>`;
-  };
-
   return (
     <div className="flex flex-col h-screen bg-brand-slate-50 font-sans">
       <header className="sticky top-0 z-10 bg-white/70 backdrop-blur-lg border-b border-brand-slate-200">
@@ -140,16 +147,18 @@ export default function App() {
                       : "bg-white text-brand-slate-800 rounded-bl-lg border border-brand-slate-200"
                   }`}
                 >
-                  {msg.sender === 'user' ? (
-                    <p>{msg.text}</p>
-                  ) : msg.isStatus ? (
-                    <div className="flex items-center gap-3 text-brand-slate-700">
-                      <Logo className="w-5 h-5 animate-pulse-glow" />
-                      <span className="text-sm font-medium">{msg.text}</span>
-                    </div>
-                  ) : (
-                    <div dangerouslySetInnerHTML={{ __html: formatMessage(msg.text) }} />
-                  )}
+                  <div className="prose prose-sm max-w-none text-brand-slate-700 leading-relaxed">
+                    {msg.sender === 'user' ? (
+                      <p className="text-white">{msg.text}</p>
+                    ) : msg.isStatus ? (
+                      <div className="flex items-center gap-3">
+                        <Logo className="w-5 h-5 animate-pulse-glow" />
+                        <span className="text-sm font-medium">{msg.text}</span>
+                      </div>
+                    ) : (
+                      <p>{parseMessage(msg.text)}</p>
+                    )}
+                  </div>
                   <div className={`text-xs mt-2 ${ msg.sender === 'user' ? 'text-indigo-200' : 'text-slate-400'}`}>
                     {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </div>
