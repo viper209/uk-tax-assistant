@@ -7,21 +7,27 @@ import Citation from "./Citation";
 
 const API_BASE_URL = "https://o3s1dkulm6.execute-api.eu-west-2.amazonaws.com/prod";
 
-// Splits text into plain segments and citation segments
+// Splits text into plain segments and citation segments with square-bracketed citations
 const parseMessage = (text) => {
-  const parts = text.split(/(\(.*?\))/g);
-
+  const parts = text.split(/(\[source:.*?\])/g);
   return parts.map((part, index) => {
-    const match = part.match(/\((.*?)\)/);
+    const match = part.match(/\[source:(.*?)\]/);
     if (match) {
-      return <Citation key={`cite-${index}`} text={match[1]} />;
+      const citationText = match[1].trim();
+      return <Citation key={`cite-${index}`} text={citationText} />;
     }
-
     return part.split("\n").map((line, i) => (
       <React.Fragment key={`text-${index}-${i}`}>{i > 0 && <br />}{line}</React.Fragment>
     ));
   });
 };
+
+// Dynamically render user avatar initials
+const UserAvatar = ({ initials }) => (
+  <div className="flex-shrink-0 w-8 h-8 bg-brand-indigo-dark rounded-full flex items-center justify-center shadow-md text-white font-bold text-sm">
+    {initials}
+  </div>
+);
 
 export default function App() {
   const [messages, setMessages] = useState([
@@ -50,13 +56,7 @@ export default function App() {
     const thinkingId = nanoid();
     setMessages((msgs) => [
       ...msgs,
-      {
-        id: thinkingId,
-        sender: "assistant",
-        text: "Analyzing with HMRC & ACCA sources...",
-        timestamp: new Date(),
-        isStatus: true,
-      },
+      { id: thinkingId, sender: "assistant", text: "Analyzing with HMRC & ACCA sources...", timestamp: new Date(), isStatus: true },
     ]);
 
     let jobStatus = "PENDING";
@@ -68,14 +68,10 @@ export default function App() {
       attempts += 1;
       await new Promise((resolve) => setTimeout(resolve, 4000));
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/status?jobId=${jobId}`
-        );
+        const response = await fetch(`${API_BASE_URL}/status?jobId=${jobId}`);
         const data = await response.json();
         jobStatus = data.status;
-        if (jobStatus === "COMPLETE") {
-          finalResponse = data.response;
-        }
+        if (jobStatus === "COMPLETE") finalResponse = data.response;
       } catch {
         jobStatus = "ERROR";
       }
@@ -92,13 +88,7 @@ export default function App() {
     e.preventDefault();
     if (!input.trim() || isTyping) return;
 
-    const userMsg = {
-      id: nanoid(),
-      sender: "user",
-      text: input.trim(),
-      timestamp: new Date(),
-    };
-
+    const userMsg = { id: nanoid(), sender: "user", text: input.trim(), timestamp: new Date() };
     setMessages((msgs) => [...msgs, userMsg]);
     setInput("");
     setIsTyping(true);
@@ -109,7 +99,6 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: userMsg.text }),
       });
-
       if (response.status === 202) {
         const { jobId } = await response.json();
         pollJobStatus(jobId);
@@ -119,10 +108,7 @@ export default function App() {
       }
     } catch (err) {
       setIsTyping(false);
-      setMessages((msgs) => [
-        ...msgs,
-        { id: nanoid(), sender: "assistant", text: `A technical issue occurred: ${err.message}`, timestamp: new Date() },
-      ]);
+      setMessages((msgs) => [...msgs, { id: nanoid(), sender: "assistant", text: `A technical issue occurred: ${err.message}`, timestamp: new Date() }]);
     }
   };
 
@@ -133,12 +119,8 @@ export default function App() {
           <div className="flex items-center gap-3">
             <Logo className="w-8 h-8" />
             <div>
-              <h1 className="text-lg font-bold text-brand-slate-800 tracking-tight">
-                UK SME Tax & Accounting Advisor
-              </h1>
-              <p className="text-sm text-brand-slate-700">
-                AI-powered guidance from HMRC & ACCA sources
-              </p>
+              <h1 className="text-lg font-bold text-brand-slate-800 tracking-tight">UK SME Tax & Accounting Advisor</h1>
+              <p className="text-sm text-brand-slate-700">AI-powered guidance from HMRC & ACCA sources</p>
             </div>
           </div>
         </div>
@@ -147,48 +129,50 @@ export default function App() {
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4 py-6 space-y-8 pb-32">
           <AnimatePresence>
-            {messages.map((msg) => (
-              <motion.div
-                key={msg.id}
-                layout
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-                className={`flex gap-4 items-start ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
-                {msg.sender === "assistant" && <div className="flex-shrink-0"><Logo className="w-8 h-8 mt-1" /></div>}
-
-                <div
-                  className={`max-w-[80%] rounded-2xl px-5 py-3 shadow-md transition-shadow hover:shadow-lg ${
-                    msg.sender === "user"
-                      ? "bg-brand-indigo text-white rounded-br-lg"
-                      : "bg-white text-brand-slate-800 rounded-bl-lg border border-brand-slate-200"
-                  }`}
+            {messages.map((msg) => {
+              const isError = msg.text.startsWith("A technical issue occurred");
+              return (
+                <motion.div
+                  key={msg.id}
+                  layout
+                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                  className={`flex gap-4 items-start ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
                 >
-                  <div className="prose prose-sm max-w-none text-brand-slate-700 leading-relaxed">
-                    {msg.isStatus ? (
-                      <div className="flex items-center gap-3">
-                        <Logo className="w-5 h-5 animate-pulse-glow" />
-                        <span className="text-sm font-medium">{msg.text}</span>
-                      </div>
-                    ) : msg.sender === "assistant" ? (
-                      parseMessage(msg.text)
-                    ) : (
-                      <p>{msg.text}</p>
-                    )}
-                  </div>
-                  <div className={`text-xs mt-2 ${msg.sender === "user" ? "text-indigo-200" : "text-slate-400"}`}>
-                    {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                </div>
+                  {msg.sender === "assistant" && <div className="flex-shrink-0"><Logo className="w-8 h-8 mt-1" /></div>}
 
-                {msg.sender === "user" && (
-                  <div className="flex-shrink-0 w-8 h-8 bg-brand-indigo-dark rounded-full flex items-center justify-center shadow-md text-white font-bold text-sm">
-                    Y
+                  <div
+                    className={`max-w-[80%] rounded-2xl px-5 py-3 shadow-md transition-shadow hover:shadow-lg ${
+                      msg.sender === "user"
+                        ? "bg-brand-indigo text-white rounded-br-lg"
+                        : isError
+                        ? "bg-red-50 border border-red-400 text-red-800 rounded-bl-lg"
+                        : "bg-white text-brand-slate-800 rounded-bl-lg border border-brand-slate-200"
+                    }`}
+                  >
+                    <div className="prose prose-sm max-w-none text-brand-slate-700 leading-relaxed">
+                      {msg.isStatus ? (
+                        <div className="flex items-center gap-3">
+                          <Logo className="w-5 h-5 animate-pulse-glow" />
+                          <span className="text-sm font-medium">{msg.text}</span>
+                        </div>
+                      ) : msg.sender === "assistant" ? (
+                        parseMessage(msg.text)
+                      ) : (
+                        <p>{msg.text}</p>
+                      )}
+                    </div>
+                    <div className={`text-xs mt-2 ${msg.sender === "user" ? "text-indigo-200" : "text-slate-400"}`}>   
+                      {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
                   </div>
-                )}
-              </motion.div>
-            ))}
+
+                  {msg.sender === "user" && <UserAvatar initials="Y" />}    
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
           <div ref={chatEndRef} />
         </div>
@@ -201,12 +185,7 @@ export default function App() {
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend(e);
-                }
-              }}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(e); } }}
               placeholder="e.g., What are the thresholds for Making Tax Digital for VAT?"
               className="w-full pl-4 pr-14 py-3 rounded-xl border border-brand-slate-300 focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 resize-none transition-all duration-200 text-base min-h-[52px] max-h-40"
               rows="1"
