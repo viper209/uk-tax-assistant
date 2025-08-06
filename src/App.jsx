@@ -161,7 +161,7 @@ export default function App() {
                       ) : msg.sender === "assistant" ? (
                         parseMessage(msg.text)
                       ) : (
-                        <p>{msg.text}</p>
+                        <p className="text-white">{msg.text}</p>
                       )}
                     </div>
                     <div className={`text-xs mt-2 ${msg.sender === "user" ? "text-indigo-200" : "text-slate-400"}`}>   
