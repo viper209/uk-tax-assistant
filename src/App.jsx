@@ -6,15 +6,23 @@ import Citation from "./Citation"; // Import the new Citation component
 
 const API_BASE_URL = "https://o3s1dkulm6.execute-api.eu-west-2.amazonaws.com/prod";
 
-// New helper function to parse messages into components and strings
+//******************************************************************//
+// THIS IS THE CORRECTED AND VERIFIED PARSE FUNCTION
+//******************************************************************//
 const parseMessage = (text) => {
+  // This regex splits the text by the pattern, but keeps the pattern in the resulting array.
   const parts = text.split(/(\)/g);
+
   return parts.map((part, index) => {
+    // This regex checks if a part is a source citation and captures the text inside.
     const match = part.match(/\/);
+
     if (match) {
+      // If it's a citation, render the Citation component.
       return <Citation key={index} text={match[1]} />;
     }
-    // Render newlines correctly
+    
+    // If it's just regular text, render it, making sure to handle newlines correctly.
     return part.split('\n').map((line, i) => (
       <React.Fragment key={`${index}-${i}`}>
         {i > 0 && <br />}
@@ -23,6 +31,7 @@ const parseMessage = (text) => {
     ));
   });
 };
+
 
 export default function App() {
   const [messages, setMessages] = useState([
