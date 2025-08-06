@@ -96,13 +96,13 @@ export default function App() {
 
   const formatMessage = (text) => {
     const formattedText = text
-      .replace(/\/g, `<span class="citation"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="icon"><path fill-rule="evenodd" d="M8.5 2.75a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0V4.538l-3.136 7.168a.75.75 0 1 1-1.328-.58l3.136-7.168V3.5a.75.75 0 0 1 .75-.75h1.5Z" clip-rule="evenodd"></path></svg>$1</span>`)
+      .replace(/\/g, `<span class="citation"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M18.55 2.55a.75.75 0 0 1 .9 1.18l-3.025 4.537A5.247 5.247 0 0 1 12 12.75a5.247 5.247 0 0 1-4.425-7.483L4.55 2.55a.75.75 0 1 1 .9-1.18l2.365 3.547A5.225 5.225 0 0 1 12 4.25c1.6 0 3.09.712 4.125 1.847l2.425-3.547zM12 5.75a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5zM.75 14.5a.75.75 0 0 0 0 1.5h4.5a.75.75 0 0 0 0-1.5h-4.5zm18 0a.75.75 0 0 0 0 1.5h4.5a.75.75 0 0 0 0-1.5h-4.5zM5.992 19.333a.75.75 0 1 0-1.04-1.166 6.75 6.75 0 0 0-3.146 5.517.75.75 0 0 0 1.494.134 5.25 5.25 0 0 1 2.44-4.329zM19.048 18.167a.75.75 0 1 0-1.04 1.166A5.25 5.25 0 0 1 20.45 23.8a.75.75 0 0 0 1.494-.134 6.75 6.75 0 0 0-3.146-5.5z"></path></svg>$1</span>`)
       .replace(/^# (.*$)/gm, '<h3 class="text-xl font-bold text-brand-slate-800 mb-3 mt-4">$1</h3>')
       .replace(/^## (.*$)/gm, '<h4 class="text-lg font-semibold text-brand-slate-700 mb-2 mt-3">$1</h4>')
       .replace(/^\* (.*$)/gm, '<li class="list-disc ml-4 mb-1">$1</li>')
       .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-brand-slate-800">$1</strong>')
       .replace(/\n/g, '<br />');
-
+    
     return `<div class="prose prose-sm max-w-none text-brand-slate-700 leading-relaxed">${formattedText}</div>`;
   };
 
