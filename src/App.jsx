@@ -58,39 +58,84 @@ export default function App() {
     return JSON.stringify(raw);
   };
 
-  const pollJobStatus = async (jobId) => {
-    const thinkingId = nanoid();
-    setMessages((msgs) => [
-      ...msgs,
-      { id: thinkingId, sender: "assistant", text: "Analyzing with HMRC & ACCA sources...", timestamp: new Date(), isStatus: true },
-    ]);
+  const pollJobStatus = (jobId) => {
+  const thinkingId = nanoid();
+  setMessages(msgs => [
+    ...msgs,
+    { 
+      id: thinkingId,
+      sender: "assistant",
+      text: "Analyzing with HMRC & ACCA sources…",
+      timestamp: new Date(),
+      isStatus: true
+    }
+  ]);
 
-    let jobStatus = "PENDING";
-    let finalResponse = "A technical error occurred. Please try again.";
-    let attempts = 0;
-    const maxAttempts = 15;
+  const maxAttempts = 15;
+  const intervalMs = 4000;
 
-    while ((jobStatus === "PENDING" || jobStatus === "PROCESSING") && attempts < maxAttempts) {
-      attempts += 1;
-      await new Promise((resolve) => setTimeout(resolve, 4000));
-      try {
-        const response = await fetch(`${API_BASE_URL}/status?jobId=${jobId}`);
-        const data = await response.json();
-        jobStatus = data.status;
-        if (jobStatus === "COMPLETE") {
-          finalResponse = resolveResponseText(data.response);
-        }
-      } catch {
-        jobStatus = "ERROR";
+  const checkStatus = async (attempts = 1) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/status?jobId=${jobId}`);
+      const data = await res.json();
+
+      if (data.status === "COMPLETE") {
+        const raw = data.response;
+        const finalResponse = typeof raw === "string"
+          ? raw
+          : (raw.text || JSON.stringify(raw));
+
+        setMessages(msgs => [
+          ...msgs.filter(m => m.id !== thinkingId),
+          {
+            id: nanoid(),
+            sender: "assistant",
+            text: finalResponse,
+            timestamp: new Date()
+          }
+        ]);
+        setIsTyping(false);
+        return;
+      }
+
+      if (attempts < maxAttempts) {
+        setTimeout(() => checkStatus(attempts + 1), intervalMs);
+      } else {
+        // give up after maxAttempts
+        setMessages(msgs => [
+          ...msgs.filter(m => m.id !== thinkingId),
+          {
+            id: nanoid(),
+            sender: "assistant",
+            text: "A technical error occurred. Please try again.",
+            timestamp: new Date()
+          }
+        ]);
+        setIsTyping(false);
+      }
+
+    } catch {
+      if (attempts < maxAttempts) {
+        setTimeout(() => checkStatus(attempts + 1), intervalMs);
+      } else {
+        setMessages(msgs => [
+          ...msgs.filter(m => m.id !== thinkingId),
+          {
+            id: nanoid(),
+            sender: "assistant",
+            text: "A technical error occurred. Please try again.",
+            timestamp: new Date()
+          }
+        ]);
+        setIsTyping(false);
       }
     }
-
-    setIsTyping(false);
-    setMessages((msgs) => [
-      ...msgs.filter((m) => m.id !== thinkingId),
-      { id: nanoid(), sender: "assistant", text: finalResponse, timestamp: new Date() },
-    ]);
   };
+
+  // kick off the first check
+  checkStatus();
+};
+
 
   const handleSend = async (e) => {
     e.preventDefault();
