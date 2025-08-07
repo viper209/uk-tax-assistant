@@ -105,7 +105,7 @@ export default function App() {
       const response = await fetch(`${API_BASE_URL}/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: userMsg.text }),
+        body: JSON.stringify({ inputText: userMsg.text }),
       });
       if (response.status === 202) {
         const { jobId } = await response.json();
