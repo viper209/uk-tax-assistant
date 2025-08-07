@@ -7,10 +7,16 @@ import { nanoid } from "nanoid";
 import Logo from "./Logo";
 import Citation from "./Citation";
 
-const API_BASE_URL =
-  "https://o3s1dkulm6.execute-api.eu-west-2.amazonaws.com/prod";
+const API_BASE_URL = "https://o3s1dkulm6.execute-api.eu-west-2.amazonaws.com/prod";
 
-// Helper to normalise Bedrock’s response payload
+// Dynamically render user avatar initials
+const UserAvatar = ({ initials }) => (
+  <div className="flex-shrink-0 w-8 h-8 bg-brand-indigo-dark rounded-full flex items-center justify-center shadow-md text-white font-bold text-sm">
+    {initials}
+  </div>
+);
+
+// Normalize Bedrock’s response payload
 const resolveResponseText = (raw) => {
   if (typeof raw === "string") return raw;
   if (raw.text) return raw.text;
@@ -60,9 +66,7 @@ export default function App() {
 
     const checkStatus = async (attempts = 1) => {
       try {
-        const res = await fetch(
-          `${API_BASE_URL}/status?jobId=${jobId}`
-        );
+        const res = await fetch(`${API_BASE_URL}/status?jobId=${jobId}`);
         const data = await res.json();
 
         if (data.status === "COMPLETE") {
@@ -79,10 +83,10 @@ export default function App() {
           setIsTyping(false);
           return;
         }
+
         if (attempts < maxAttempts) {
           setTimeout(() => checkStatus(attempts + 1), intervalMs);
         } else {
-          // give up
           setMessages((msgs) => [
             ...msgs.filter((m) => m.id !== thinkingId),
             {
@@ -133,7 +137,7 @@ export default function App() {
       const response = await fetch(`${API_BASE_URL}/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: userMsg.text }), // or { inputText: ... } if you’ve switched back
+        body: JSON.stringify({ query: userMsg.text }),
       });
       if (response.status === 202) {
         const { jobId } = await response.json();
@@ -159,11 +163,16 @@ export default function App() {
   return (
     <div className="flex flex-col h-screen bg-brand-slate-50 font-sans">
       <header className="sticky top-0 z-10 bg-white/70 backdrop-blur-lg border-b border-brand-slate-200">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
           <Logo className="w-8 h-8" />
-          <h1 className="ml-3 text-lg font-bold text-brand-slate-800">
-            UK SME Tax & Accounting Advisor
-          </h1>
+          <div>
+            <h1 className="text-lg font-bold text-brand-slate-800">
+              UK SME Tax & Accounting Advisor
+            </h1>
+            <p className="text-sm text-brand-slate-700">
+              AI-powered guidance from HMRC & ACCA sources
+            </p>
+          </div>
         </div>
       </header>
 
@@ -193,51 +202,47 @@ export default function App() {
                   <div
                     className={`max-w-[80%] rounded-2xl px-5 py-3 shadow-md transition-shadow hover:shadow-lg ${
                       msg.sender === "user"
-                        ? "bg-brand-indigo text-white"
+                        ? "bg-brand-indigo text-white rounded-br-lg"
                         : isError
-                        ? "bg-red-50 border border-red-400 text-red-800"
-                        : "bg-white text-brand-slate-800 border border-brand-slate-200"
+                        ? "bg-red-50 border border-red-400 text-red-800 rounded-bl-lg"
+                        : "bg-white text-brand-slate-800 rounded-bl-lg border border-brand-slate-200"
                     }`}
                   >
                     {msg.isStatus ? (
                       <div className="flex items-center gap-2">
                         <Logo className="w-5 h-5 animate-pulse-glow" />
-                        <span className="text-sm font-medium">
-                          {msg.text}
-                        </span>
+                        <span className="text-sm font-medium">{msg.text}</span>
                       </div>
-                    ) : (
+                    ) : msg.sender === "assistant" ? (
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         components={{
-                          h1: ({node, ...props}) => (
-                            <h1 className="text-2xl font-bold mb-2" {...props}/>
+                          h1: ({ node, ...props }) => (
+                            <h1 className="text-2xl font-bold mb-2" {...props} />
                           ),
-                          h2: ({node, ...props}) => (
-                            <h2 className="text-xl font-semibold mb-1" {...props}/>
+                          h2: ({ node, ...props }) => (
+                            <h2 className="text-xl font-semibold mb-1" {...props} />
                           ),
-                          h3: ({node, ...props}) => (
-                            <h3 className="text-lg font-semibold mb-1" {...props}/>
+                          h3: ({ node, ...props }) => (
+                            <h3 className="text-lg font-semibold mb-1" {...props} />
                           ),
-                          p: ({node, ...props}) => (
-                            <p className="mb-3" {...props}/>
+                          p: ({ node, ...props }) => <p className="mb-3" {...props} />,
+                          li: ({ node, ...props }) => (
+                            <li className="ml-4 list-disc mb-1" {...props} />
                           ),
-                          li: ({node, ...props}) => (
-                            <li className="ml-4 list-disc mb-1" {...props}/>
+                          strong: ({ node, ...props }) => (
+                            <strong className="font-semibold" {...props} />
                           ),
-                          strong: ({node, ...props}) => (
-                            <strong className="font-semibold" {...props}/>
-                          )
                         }}
                       >
                         {msg.text}
                       </ReactMarkdown>
+                    ) : (
+                      <p className="text-white">{msg.text}</p>
                     )}
                     <div
                       className={`text-xs mt-2 ${
-                        msg.sender === "user"
-                          ? "text-indigo-200"
-                          : "text-slate-400"
+                        msg.sender === "user" ? "text-indigo-200" : "text-slate-400"
                       }`}
                     >
                       {msg.timestamp.toLocaleTimeString([], {
@@ -247,9 +252,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  {msg.sender === "user" && (
-                    <UserAvatar initials="Y" />
-                  )}
+                  {msg.sender === "user" && <UserAvatar initials="Y" />}
                 </motion.div>
               );
             })}
