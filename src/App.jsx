@@ -71,7 +71,7 @@ export default function App() {
     }
   ]);
 
-  const maxAttempts = 15;
+  const maxAttempts = 60;
   const intervalMs = 4000;
 
   const checkStatus = async (attempts = 1) => {
