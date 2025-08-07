@@ -52,6 +52,12 @@ export default function App() {
     inputRef.current?.focus();
   }, []);
 
+  const resolveResponseText = (raw) => {
+    if (typeof raw === 'string') return raw;
+    if (raw.text) return raw.text;
+    return JSON.stringify(raw);
+  };
+
   const pollJobStatus = async (jobId) => {
     const thinkingId = nanoid();
     setMessages((msgs) => [
@@ -71,7 +77,9 @@ export default function App() {
         const response = await fetch(`${API_BASE_URL}/status?jobId=${jobId}`);
         const data = await response.json();
         jobStatus = data.status;
-        if (jobStatus === "COMPLETE") finalResponse = data.response;
+        if (jobStatus === "COMPLETE") {
+          finalResponse = resolveResponseText(data.response);
+        }
       } catch {
         jobStatus = "ERROR";
       }
@@ -97,8 +105,7 @@ export default function App() {
       const response = await fetch(`${API_BASE_URL}/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // send the expected key "inputText" rather than "query"
-        body: JSON.stringify({ inputText: userMsg.text }),
+        body: JSON.stringify({ query: userMsg.text }),
       });
       if (response.status === 202) {
         const { jobId } = await response.json();
@@ -145,7 +152,7 @@ export default function App() {
                   {msg.sender === "assistant" && <div className="flex-shrink-0"><Logo className="w-8 h-8 mt-1" /></div>}
 
                   <div
-                    className={`max-w-[80%] rounded-2xl px-5 py-3 shadow-md transition-shadow hover:shadow-lg \$ {
+                    className={`max-w-[80%] rounded-2xl px-5 py-3 shadow-md transition-shadow hover:shadow-lg ${
                       msg.sender === "user"
                         ? "bg-brand-indigo text-white rounded-br-lg"
                         : isError
